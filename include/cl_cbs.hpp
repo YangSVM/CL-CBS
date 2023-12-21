@@ -91,21 +91,32 @@ class CL_CBS {
   ~CL_CBS() {}
 
   bool search(const std::vector<State>& initialStates,
-              std::vector<PlanResult<State, Action, Cost>>& solution) {
+              std::vector<PlanResult<State, Action, Cost>>& solution, double t_max) {
     HighLevelNode start;
     start.solution.resize(initialStates.size());
     start.constraints.resize(initialStates.size());
     start.cost = 0;
     start.id = 0;
 
+    std::chrono::high_resolution_clock::time_point
+        startTime = std::chrono::high_resolution_clock::now(),
+        endTime;
+
     for (size_t i = 0; i < initialStates.size(); ++i) {
+      endTime = std::chrono::high_resolution_clock::now();
+      double t_higher_remain = t_max -  std::chrono::duration_cast<std::chrono::duration<double>>(
+        endTime -startTime).count() ;
+      if ( t_higher_remain < 0) {
+        std::cout << "\033[1m\033[31m initialize failed. Plan out of runtime time! \033[0m\n";
+        return false;
+      }
       // if (i < solution.size() && solution[i].states.size() > 1) {
       //   start.solution[i] = solution[i];
       //   std::cout << "use existing solution for agent: " << i << std::endl;
       // } else {
       LowLevelEnvironment llenv(m_env, i, start.constraints[i]);
       LowLevelSearch_t lowLevel(llenv);
-      bool success = lowLevel.search(initialStates[i], start.solution[i]);
+      bool success = lowLevel.search(initialStates[i], start.solution[i], t_higher_remain);
       if (!success) {
         return false;
       }
@@ -121,16 +132,14 @@ class CL_CBS {
     auto handle = open.push(start);
     (*handle).handle = handle;
 
-    std::chrono::high_resolution_clock::time_point
-        startTime = std::chrono::high_resolution_clock::now(),
-        endTime;
+
     solution.clear();
     int id = 1;
     while (!open.empty()) {
       endTime = std::chrono::high_resolution_clock::now();
-      if (std::chrono::duration_cast<std::chrono::duration<double>>(endTime -
-                                                                    startTime)
-              .count() > MAX_RUNTIME) {
+      double t_higher_remain = t_max -  std::chrono::duration_cast<std::chrono::duration<double>>(
+        endTime -startTime).count() ;
+      if ( t_higher_remain < 0) {
         open.clear();
         std::cout << "\033[1m\033[31m Plan out of runtime time! \033[0m\n";
         return false;
@@ -171,7 +180,7 @@ class CL_CBS {
 
         LowLevelEnvironment llenv(m_env, i, newNode.constraints[i]);
         LowLevelSearch_t lowLevel(llenv);
-        bool success = lowLevel.search(initialStates[i], newNode.solution[i]);
+        bool success = lowLevel.search(initialStates[i], newNode.solution[i], t_higher_remain);
 
         newNode.cost += newNode.solution[i].cost;
 
@@ -262,6 +271,8 @@ class CL_CBS {
       // std::cout << "LL discover: " << s << std::endl;
       // m_env.onDiscoverLowLevel(s, m_agentIdx, m_constraints);
     }
+
+    int nodeExpanded() const { return m_env.lowLevelExpanded(); }
 
    private:
     Environment& m_env;

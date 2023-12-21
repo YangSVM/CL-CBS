@@ -21,6 +21,7 @@
 
 #include "neighbor.hpp"
 #include "planresult.hpp"
+#include "timer.hpp"
 
 namespace libMultiRobotPlanning {
 /*!
@@ -83,7 +84,7 @@ class HybridAStar {
   ~HybridAStar() {}
 
   bool search(const State& startState,
-              PlanResult<State, Action, Cost>& solution, Cost initialCost = 0) {
+              PlanResult<State, Action, Cost>& solution, double t_max, Cost initialCost = 0) {
     solution.states.clear();
     solution.actions.clear();
     solution.cost = 0;
@@ -103,8 +104,22 @@ class HybridAStar {
 
     std::vector<Neighbor<State, Action, Cost>> neighbors;
     neighbors.reserve(10);
-
+    Timer limiter;
+    int limit_count = 0;
     while (!openSet.empty()) {
+      
+      // test the time every 100 nodes.
+      limit_count ++ ;
+      if ( limit_count > 100){
+        limit_count = 0;
+        limiter.stop();
+        double t_remain = t_max - limiter.elapsedSeconds();
+        if ( t_remain < 0){
+          std::cout << "hybrid a* running out of time." << std::endl;
+          // std::cout << "expand nodes: " << m_env.nodeExpanded() << std::endl;
+          return false;
+        }
+      }
       Node current = openSet.top();
       m_env.onExpandNode(current.state, current.fScore, current.gScore);
       if (m_env.isSolution(current.state, current.gScore, cameFrom)) {

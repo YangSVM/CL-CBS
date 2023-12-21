@@ -320,13 +320,15 @@ int main(int argc, char* argv[]) {
   std::string inputFile;
   std::string outputFile;
   int batchSize;
-  desc.add_options()("help", "produce help message")(
-      "input,i", po::value<std::string>(&inputFile)->required(),
-      "input file (YAML)")("output,o",
-                           po::value<std::string>(&outputFile)->required(),
-                           "output file (YAML)")(
-      "batchsize,b", po::value<int>(&batchSize)->default_value(10),
-      "batch size for iter");
+  double time_limit;
+  desc.add_options()
+    ("help", "produce help message")
+
+    ("input,i", po::value<std::string>(&inputFile)->required(),"input file (YAML)")
+    ("output,o",po::value<std::string>(&outputFile)->required(),"output file (YAML)")
+    ("batchsize,b", po::value<int>(&batchSize)->default_value(10),"batch size for iter")
+    ("timeLimit,t", po::value<double>(&time_limit)->default_value(60),"time limit for the process")
+  ;
 
   try {
     po::variables_map vm;
@@ -378,7 +380,15 @@ int main(int argc, char* argv[]) {
   double timer = 0;
   bool success = false;
   std::vector<PlanResult<State, Action, double>> solution;
+  Timer limiter;
   for (size_t iter = 0; iter < (double)goals.size() / batchSize; iter++) {
+    limiter.stop();
+    double t_remain = time_limit - limiter.elapsedSeconds() ;
+    if ( t_remain < 0 ) {
+      std::cout << "out of time. quit." << std::endl;
+      success = false;
+      break;
+    }
     size_t first = iter * batchSize;
     size_t last = first + batchSize;
     if (last >= goals.size()) last = goals.size();
@@ -403,7 +413,7 @@ int main(int argc, char* argv[]) {
         cbsHybrid(mapf);
     std::vector<PlanResult<State, Action, double>> m_solution;
     Timer iterTimer;
-    success = cbsHybrid.search(m_starts, m_solution);
+    success = cbsHybrid.search(m_starts, m_solution, t_remain);
     iterTimer.stop();
 
     if (!success) {

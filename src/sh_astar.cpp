@@ -482,7 +482,7 @@ int main() {
   HybridAStar<State, Action, double, Environment> hybridAStar(env);
   PlanResult<State, Action, double> solution;
   Timer timer;
-  bool searchSuccess = hybridAStar.search(start, solution);
+  bool searchSuccess = hybridAStar.search(start, solution,60);
   timer.stop();
 
   std::string outputFile = "output_h.yaml";
