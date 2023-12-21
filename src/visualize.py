@@ -18,7 +18,7 @@ carWidth = 2.0
 LF = 2.0
 LB = 1.0
 obsRadius = 1
-framesPerMove = 3
+framesPerMove = 5
 
 
 def get_cmap(n, name='hsv'):
@@ -67,9 +67,9 @@ class Animation:
         self.patches.append(Rectangle(
             (xmin, ymin), xmax - xmin, ymax - ymin, facecolor='none', edgecolor='red'))
         for o in map["map"]["obstacles"]:
-            x, y = o[0], o[1]
+            x, y, r_obs = o[0], o[1], o[2]
             self.patches.append(
-                Circle((x, y), obsRadius, facecolor='grey', edgecolor='grey'))
+                Circle((x, y), r_obs, facecolor='grey', edgecolor='grey'))
             # Rectangle((x - 0.5, y - 0.5), 1, 1, facecolor='red', edgecolor='red'))
 
         # create agents:
@@ -214,6 +214,10 @@ if __name__ == "__main__":
 
     with open(args.map) as map_file:
         map = yaml.load(map_file, Loader=yaml.FullLoader)
+        for agent in map["agents"]:
+            agent['start'][2] = -agent['start'][2]
+            agent['goal'][2] = -agent['goal'][2]
+        
 
     with open(args.schedule) as states_file:
         schedule = yaml.load(states_file, Loader=yaml.FullLoader)
@@ -227,10 +231,11 @@ if __name__ == "__main__":
             LF = carConfig["LF"]
             LB = carConfig["LB"]
             obsRadius = carConfig["obsRadius"]-0.1
+            print("read config. LF", LF, "LB", LB, "car width", carWidth, "obs radius", obsRadius)
     except IOError:
         # do things with your exception
         print("ERROR loading config file", os.path.abspath(os.path.join(
-            os.getcwd(), ".."))+"/src/config1.yaml", " using default param to plot")
+            os.getcwd(), ".."))+"/src/config.yaml", " using default param to plot")
 
     animation = Animation(map, schedule)
 

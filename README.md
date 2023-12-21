@@ -101,3 +101,11 @@ For researchers that have leveraged or compared to this work, please cite the fo
 
 ## License
 The code was developed by the  [APRIL Lab](https://github.com/APRIL-ZJU) in Zhejiang University, and is provided under the [MIT License](https://opensource.org/licenses/MIT).
+
+
+## added features
+1. 添加李柏论文中的场景库
+2. 将场景库中的东北天坐标系，转换成 这里的场景
+   1. 后轴中心？对。
+   2. 坐标系？右为x正，上为y正。x+为yaw 0,顺时针为正
+   3. 结论：直接修改场景的yaw为相应的负数就行。

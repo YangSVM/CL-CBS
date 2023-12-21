@@ -28,12 +28,13 @@ using libMultiRobotPlanning::PlanResult;
 using namespace libMultiRobotPlanning;
 
 // calculate agent collision more precisely BUT need LONGER time
-// #define PRCISE_COLLISION
+#define PRCISE_COLLISION
 
 struct Location {
-  Location(double x, double y) : x(x), y(y) {}
+  Location(double x, double y, double r) : x(x), y(y),r(r) {}
   double x;
   double y;
+  double r;
 
   bool operator<(const Location& other) const {
     return std::tie(x, y) < std::tie(other.x, other.y);
@@ -44,7 +45,7 @@ struct Location {
   }
 
   friend std::ostream& operator<<(std::ostream& os, const Location& c) {
-    return os << "(" << c.x << "," << c.y << ")";
+    return os << "(" << c.x << "," << c.y << "). "<< c.r <<".";
   }
 };
 
@@ -55,6 +56,7 @@ struct hash<Location> {
     size_t seed = 0;
     boost::hash_combine(seed, s.x);
     boost::hash_combine(seed, s.y);
+    boost::hash_combine(seed, s.r);
     return seed;
   }
 };
@@ -141,12 +143,13 @@ struct State {
     boost::numeric::ublas::matrix<double> obs(1, 2);
     obs(0, 0) = obstacle.x - this->x;
     obs(0, 1) = obstacle.y - this->y;
+    double r_obs = obstacle.r;
 
     auto rotated_obs = boost::numeric::ublas::prod(obs, rot);
-    if (rotated_obs(0, 0) > -Constants::LB - Constants::obsRadius &&
-        rotated_obs(0, 0) < Constants::LF + Constants::obsRadius &&
-        rotated_obs(0, 1) > -Constants::carWidth / 2.0 - Constants::obsRadius &&
-        rotated_obs(0, 1) < Constants::carWidth / 2.0 + Constants::obsRadius)
+    if (rotated_obs(0, 0) > -Constants::LB - r_obs &&
+        rotated_obs(0, 0) < Constants::LF + r_obs &&
+        rotated_obs(0, 1) > -Constants::carWidth / 2.0 - r_obs &&
+        rotated_obs(0, 1) < Constants::carWidth / 2.0 + r_obs)
       return true;
     return false;
   }
@@ -362,16 +365,16 @@ int main(int argc, char* argv[]) {
   std::vector<State> goals;
   std::vector<State> startStates;
   for (const auto& node : map_config["map"]["obstacles"]) {
-    obstacles.insert(Location(node[0].as<double>(), node[1].as<double>()));
+    obstacles.insert(Location(node[0].as<double>(), node[1].as<double>(), node[2].as<double>()));
   }
   for (const auto& node : map_config["agents"]) {
     const auto& start = node["start"];
     const auto& goal = node["goal"];
     startStates.emplace_back(State(start[0].as<double>(), start[1].as<double>(),
-                                   start[2].as<double>()));
+                                   -start[2].as<double>()));
     // std::cout << "s: " << startStates.back() << std::endl;
     goals.emplace_back(State(goal[0].as<double>(), goal[1].as<double>(),
-                             goal[2].as<double>()));
+                             -goal[2].as<double>()));
   }
 
   std::cout << "Calculating Solution...\n";
@@ -379,6 +382,8 @@ int main(int argc, char* argv[]) {
   bool success = false;
   std::vector<PlanResult<State, Action, double>> solution;
   for (size_t iter = 0; iter < (double)goals.size() / batchSize; iter++) {
+    std::clock_t start = std::clock();
+
     size_t first = iter * batchSize;
     size_t last = first + batchSize;
     if (last >= goals.size()) last = goals.size();
@@ -397,6 +402,7 @@ int main(int argc, char* argv[]) {
       dynamic_obstacles.insert(
           std::pair<int, State>(-1, State(goal->x, goal->y, goal->yaw)));
     }
+
     CL_CBS<State, Action, double, Conflict, Constraints,
            Environment<Location, State, Action, double, Conflict, Constraint,
                        Constraints>>
@@ -404,7 +410,11 @@ int main(int argc, char* argv[]) {
     std::vector<PlanResult<State, Action, double>> m_solution;
     Timer iterTimer;
     success = cbsHybrid.search(m_starts, m_solution);
+    std::cout << "total time: " << (double)(clock() - start)/CLOCKS_PER_SEC << std::endl;
+
     iterTimer.stop();
+    
+    std::cout << " lowlevel Search ended! the expand node size: " << mapf.lowLevelExpanded() <<std::endl;
 
     if (!success) {
       std::cout << "\033[1m\033[31m No." << iter

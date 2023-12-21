@@ -132,6 +132,7 @@ class HybridAStar {
         std::reverse(solution.states.begin(), solution.states.end());
         std::reverse(solution.actions.begin(), solution.actions.end());
 
+        std::cout << "Search ended! all nodes size: " << openSet.size() + closedSet.size() <<std::endl;
         openSet.clear();
         return true;
       }
@@ -189,6 +190,7 @@ class HybridAStar {
         }
       }
     }
+    // std::cout << "Search ended! the expande size: " << m_env.lowLevelExpanded()<<std::endl;
     openSet.clear();
     return false;
   }
