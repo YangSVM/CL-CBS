@@ -7,16 +7,29 @@
 method="CL-CBS"
 planner="../build/${method}"
 
+fixed_batch_size=true  # true: fixed num of agents per batch. false: fixed num of batches.
+batch_size=2
+
+# fixed_batch_size=false  # true: fixed num of agents per batch. false: fixed num of batches.
+# kb=2
+
 
 ## declare an array variable
 declare -a num_agents_arr=("25" "30" "35" "40" "50")
-for num_agent in "${arr[@]}"
+for num_agent in "${num_agents_arr[@]}"
 do
-# num_agent='50'
     obstacle=true
     map_size="100"  # 50 100 300
-    kb=${num_agent}  # number of batch
     overwrite=true
+
+    if [ ${fixed_batch_size} = true ];
+    then
+        ((kb = num_agent/batch_size))
+        outprefix="batch_size_"${batch_size}
+    else
+        ((batch_size = num_agent/kb))  # batch_size: number of agents per batch.
+        outprefix="kb"${kb}
+    fi
 
     # specific the core numbers to run the script.
     num_procs=12
@@ -26,18 +39,18 @@ do
     if [ ${obstacle} = true ];
     then
         input_path="../benchmark/map${map_size}by${map_size}/agents${num_agent}/obstacle/"
-        output_path="../results/map${map_size}by${map_size}/agents${num_agent}/obstacle/kb${kb}/"
+        output_path="../results/${outprefix}/map${map_size}by${map_size}/agents${num_agent}/obstacle/"
     else
         input_path="../benchmark/map${map_size}by${map_size}/agents${num_agent}/empty/"
-        output_path="../results/map${map_size}by${map_size}/agents${num_agent}/empty/kb${kb}/"
+        output_path="../results/${outprefix}/map${map_size}by${map_size}/agents${num_agent}/empty/"
     fi
 
-    ((batch_size = num_agent/kb))  # batch_size: number of agents per batch.
-    echo "batch size: "${batch_size}
+    echo "num of agents per batch. batch size: "${batch_size}
+    echo "num of batches. kb: "${kb}
     echo "input path: "${input_path}
     echo "output path: "${output_path}
 
-    subfolderForPath=${output_path}${output_fname}
+    subfolderForPath=${output_path}
     mkdir -p ${subfolderForPath}
 
     num_jobs="\j"  # The prompt escape for number of jobs currently running
