@@ -28,7 +28,7 @@ using libMultiRobotPlanning::PlanResult;
 using namespace libMultiRobotPlanning;
 
 // calculate agent collision more precisely BUT need LONGER time
-// #define PRCISE_COLLISION
+#define PRCISE_COLLISION
 
 struct Location {
   Location(double x, double y) : x(x), y(y) {}
