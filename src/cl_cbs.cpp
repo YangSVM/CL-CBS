@@ -370,10 +370,10 @@ int main(int argc, char* argv[]) {
     const auto& start = node["start"];
     const auto& goal = node["goal"];
     startStates.emplace_back(State(start[0].as<double>(), start[1].as<double>(),
-                                   start[2].as<double>()));
+                                   -start[2].as<double>()));
     // std::cout << "s: " << startStates.back() << std::endl;
     goals.emplace_back(State(goal[0].as<double>(), goal[1].as<double>(),
-                             goal[2].as<double>()));
+                             -goal[2].as<double>()));
   }
 
   std::cout << "Calculating Solution...\n";
@@ -395,7 +395,11 @@ int main(int argc, char* argv[]) {
     std::vector<State> m_goals(goals.begin() + first, goals.begin() + last);
     std::vector<State> m_starts(startStates.begin() + first,
                                 startStates.begin() + last);
-
+                                
+    for (auto goal = goals.begin() + last; goal != goals.end(); goal++) {
+      dynamic_obstacles.insert(
+          std::pair<int, State>(-1, State(goal->x, goal->y, goal->yaw)));
+    }
     Environment<Location, State, Action, double, Conflict, Constraint,
                 Constraints>
         mapf(dimx, dimy, obstacles, dynamic_obstacles, m_goals);
@@ -403,10 +407,7 @@ int main(int argc, char* argv[]) {
       success = false;
       break;
     }
-    for (auto goal = goals.begin() + last; goal != goals.end(); goal++) {
-      dynamic_obstacles.insert(
-          std::pair<int, State>(-1, State(goal->x, goal->y, goal->yaw)));
-    }
+
     CL_CBS<State, Action, double, Conflict, Constraints,
            Environment<Location, State, Action, double, Conflict, Constraint,
                        Constraints>>
@@ -495,7 +496,7 @@ int main(int argc, char* argv[]) {
       for (const auto& state : solution[a].states) {
         out << "    - x: " << state.first.x << std::endl
             << "      y: " << state.first.y << std::endl
-            << "      yaw: " << state.first.yaw << std::endl
+            << "      yaw: " << -state.first.yaw << std::endl
             << "      t: " << state.first.time << std::endl;
       }
     }

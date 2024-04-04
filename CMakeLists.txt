@@ -7,7 +7,7 @@ find_package(PkgConfig)
 pkg_check_modules(YamlCpp yaml-cpp)
 
 ## OPEN MOTION PLANNING LIBRARY
-find_package(OMPL REQUIRED)
+find_package(ompl REQUIRED)
 
 if(NOT OMPL_FOUND)
     message(AUTHOR_WARNING,"Open Motion Planning Library not found")
@@ -85,13 +85,13 @@ include_directories(
 
 
 ## Spatiotemporal Hybrid-State A_star
-add_executable(SH_Astar
-  src/sh_astar.cpp
-)
-target_link_libraries(SH_Astar
-  ${Boost_LIBRARIES}
-  ${OMPL_LIBRARIES}
-)
+#add_executable(SH_Astar
+#  src/sh_astar.cpp
+#)
+#target_link_libraries(SH_Astar
+#  ${Boost_LIBRARIES}
+#  ${OMPL_LIBRARIES}
+#)
 
 ## CL-CBS
 add_executable(CL-CBS
